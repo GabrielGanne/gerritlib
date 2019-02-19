@@ -1,8 +1,6 @@
 Gerritlib
 =========
 
-.. include:: ../../README.rst
-
 Contents
 ========
 .. toctree::
