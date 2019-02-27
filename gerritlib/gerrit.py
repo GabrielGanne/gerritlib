@@ -72,15 +72,12 @@ class GerritWatcher(threading.Thread):
 
     def _listen(self, stdout, stderr):
         poll = select.poll()
-        poll.register(stdout.channel)
+        poll.register(stdout.channel, select.POLLIN)
         while True:
             ret = poll.poll()
             for (fd, event) in ret:
                 if fd == stdout.channel.fileno():
-                    if event == select.POLLIN:
-                        self._read(stdout)
-                    else:
-                        raise Exception("event on ssh connection")
+                    self._read(stdout)
 
     def _connect(self):
         """Attempts to connect and returns the connected client."""
