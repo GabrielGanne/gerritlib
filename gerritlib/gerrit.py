@@ -310,13 +310,13 @@ class Gerrit(object):
 
     # get installed plugins info returned is (name, version, status, file)
     def getPlugins(self):
-        # command only available on gerrit verion >= 2.5
+        # command only available on gerrit version >= 2.5
         cmd = 'gerrit plugin ls --format json'
         out, err = self._ssh(cmd)
         return json.loads(out)
 
     def getVersion(self):
-        # command only available on gerrit verion >= 2.6
+        # command only available on gerrit version >= 2.6
         cmd = 'gerrit version'
         out, err = self._ssh(cmd)
         out = out.split(' ')[2]
