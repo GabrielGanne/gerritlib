@@ -63,6 +63,9 @@ class GerritWatcher(threading.Thread):
     def _read(self, fd):
         try:
             l = fd.readline()
+            if not l:
+                # communication has been closed
+                raise IOError("Broken pipe");
             data = json.loads(l)
             self.log.debug("Received data from Gerrit event stream: \n%s" %
                            pprint.pformat(data))
@@ -145,25 +148,30 @@ class GerritWatcher(threading.Thread):
             raise Exception("Gerrit error executing stream-events:"
                             " return code %s" % ret)
 
+    def _disconnect(self, client):
+        if client:
+            try:
+                client.close()
+            except (IOError, paramiko.SSHException):
+                self.log.exception("Failure closing broken client")
+        self.state = DISCONNECTED
+        if self.retry_delay > 0:
+            self.log.info("Delaying consumption retry for %s seconds",
+                          self.retry_delay)
+            time.sleep(self.retry_delay)
+
     def _run(self):
         self.state = CONNECTING
         client = self._connect()
         self.state = CONNECTED
         try:
             self._consume(client)
+        except IOError:
+            self._disconnect(client)
         except Exception:
             # NOTE(harlowja): allow consuming failures to *always* be retryable
             self.log.exception("Exception consuming ssh event stream:")
-            if client:
-                try:
-                    client.close()
-                except (IOError, paramiko.SSHException):
-                    self.log.exception("Failure closing broken client")
-            self.state = DISCONNECTED
-            if self.retry_delay > 0:
-                self.log.info("Delaying consumption retry for %s seconds",
-                              self.retry_delay)
-                time.sleep(self.retry_delay)
+            self._disconnect(client)
 
     def run(self):
         try:
